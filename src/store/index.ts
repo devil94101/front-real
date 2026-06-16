@@ -6,6 +6,7 @@ import vacanciesReducer from "./slices/vacanciesSlice";
 import dealsReducer from "./slices/dealsSlice";
 import teamReducer from "./slices/teamSlice";
 import activityReducer from "./slices/activitySlice";
+import billingReducer from "./slices/billingSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     deals: dealsReducer,
     team: teamReducer,
     activity: activityReducer,
+    billing: billingReducer,
   },
 });
 

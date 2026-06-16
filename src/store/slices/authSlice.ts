@@ -8,6 +8,7 @@ import api, {
   USER_KEY,
 } from "../../config/api";
 import type { AuthUser, LoginCredentials, RegisterPayload } from "../../types";
+import { verifyPayment, cancelSubscription } from "./billingSlice";
 
 // ── State ────────────────────────────────────────────────
 export interface AuthState {
@@ -117,7 +118,16 @@ const authSlice = createSlice({
         email: "jordan@stackline.co",
         role: "Principal Broker",
         color: "#2563eb",
+        plan: "premium", // demo workspace is never gated
       };
+    },
+    // Replace the current user (e.g. after a plan change) and persist it so a
+    // refresh keeps the new plan until the next /auth/me validation.
+    setUser(state, action: PayloadAction<AuthUser>) {
+      state.user = action.payload;
+      if (!state.isDemoMode) {
+        localStorage.setItem(USER_KEY, JSON.stringify(action.payload));
+      }
     },
     setActiveUserId(state, action: PayloadAction<string>) {
       state.activeUserId = action.payload;
@@ -179,8 +189,18 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
       });
+
+    // Keep the auth user's plan in sync with billing actions.
+    const applyUser = (state: AuthState, action: { payload: { user: AuthUser } }) => {
+      state.user = action.payload.user;
+      if (!state.isDemoMode) {
+        localStorage.setItem(USER_KEY, JSON.stringify(action.payload.user));
+      }
+    };
+    builder.addCase(verifyPayment.fulfilled, applyUser);
+    builder.addCase(cancelSubscription.fulfilled, applyUser);
   },
 });
 
-export const { logout, loginDemo, setActiveUserId, clearError } = authSlice.actions;
+export const { logout, loginDemo, setActiveUserId, clearError, setUser } = authSlice.actions;
 export default authSlice.reducer;

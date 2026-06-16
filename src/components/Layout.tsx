@@ -13,6 +13,7 @@ import {
   ChevronDown,
   CornerDownLeft,
   LogOut,
+  Crown,
 } from "lucide-react";
 import { cn } from "../utils/cn";
 import { Link, navigate, useHashRoute } from "../lib/router";
@@ -348,12 +349,44 @@ function SearchRow({
   );
 }
 
+function PlanChip({ onUpgrade }: { onUpgrade: () => void }) {
+  const { billing } = useApp();
+  if (!billing) return null;
+
+  if (billing.plan === "premium") {
+    return (
+      <span className="hidden items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 sm:inline-flex">
+        <Crown className="h-3.5 w-3.5" /> Premium
+      </span>
+    );
+  }
+
+  const atLimit = !billing.canList;
+  return (
+    <button
+      onClick={onUpgrade}
+      title="Upgrade to Premium"
+      className={cn(
+        "hidden items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors sm:inline-flex",
+        atLimit
+          ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+      )}
+    >
+      <Crown className={cn("h-3.5 w-3.5", atLimit ? "text-rose-500" : "text-amber-500")} />
+      {billing.used}/{billing.limit} listings
+    </button>
+  );
+}
+
 export function Layout({
   children,
   onAddProperty,
+  onUpgrade,
 }: {
   children: ReactNode;
   onAddProperty: () => void;
+  onUpgrade: () => void;
 }) {
   const route = useHashRoute();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -424,6 +457,7 @@ export function Layout({
             <div className="hidden sm:block sm:w-72 lg:w-80">
               <GlobalSearch />
             </div>
+            <PlanChip onUpgrade={onUpgrade} />
             <button
               onClick={onAddProperty}
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-3.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition-colors hover:bg-blue-700 sm:px-4"
