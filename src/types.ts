@@ -9,6 +9,34 @@ export interface AuthUser {
   color: string;
   firmId?: string;
   firmName?: string;
+  plan?: "free" | "premium";
+  subscriptionStatus?: string | null;
+  premiumSince?: string | null;
+}
+
+export interface BillingPrice {
+  amount: number; // smallest currency unit (e.g. paise)
+  currency: string;
+  period: string;
+}
+
+export interface BillingStatus {
+  plan: "free" | "premium";
+  limit: number;
+  used: number;
+  remaining: number;
+  canList: boolean;
+  subscriptionStatus: string | null;
+  price: BillingPrice;
+  live?: boolean;
+}
+
+export interface SubscriptionInit {
+  mock: boolean;
+  subscriptionId: string;
+  keyId: string;
+  amount: number;
+  currency: string;
 }
 
 export interface LoginCredentials {

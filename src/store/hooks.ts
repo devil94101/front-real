@@ -58,6 +58,7 @@ import { fetchVacancies } from "./slices/vacanciesSlice";
 import { fetchDeals } from "./slices/dealsSlice";
 import { fetchTeam } from "./slices/teamSlice";
 import { fetchActivity } from "./slices/activitySlice";
+import { fetchBillingStatus } from "./slices/billingSlice";
 
 // ── Bridge hook — same interface as the old useApp() ─────
 export function useApp() {
@@ -70,6 +71,7 @@ export function useApp() {
   const deals = useAppSelector((s) => s.deals.items);
   const team = useAppSelector((s) => s.team.members);
   const activity = useAppSelector((s) => s.activity.items);
+  const billing = useAppSelector((s) => s.billing.status);
   const authUser = useAppSelector((s) => s.auth.user);
   const isDemoMode = useAppSelector((s) => s.auth.isDemoMode);
   const activeUserId = useAppSelector((s) => s.auth.activeUserId);
@@ -131,6 +133,7 @@ export function useApp() {
       deals,
       team,
       activity,
+      billing,
       currentUser,
       isAuthenticated,
       isDemoMode,
@@ -142,7 +145,7 @@ export function useApp() {
 
       // properties
       addProperty: (p: Omit<Property, "id" | "dateAdded" | "lastUpdated">) => {
-        dispatch(createProperty(p));
+        dispatch(createProperty(p)).then(() => dispatch(fetchBillingStatus()));
       },
       updateProperty: (id: string, patch: Partial<Property>) => {
         dispatch(updatePropertyThunk({ id, patch }));
@@ -228,6 +231,7 @@ export function useApp() {
         dispatch(fetchDeals());
         dispatch(fetchTeam());
         dispatch(fetchActivity());
+        dispatch(fetchBillingStatus());
       },
 
       // lookups
@@ -246,6 +250,7 @@ export function useApp() {
       deals,
       team,
       activity,
+      billing,
       currentUser,
       isAuthenticated,
       isDemoMode,

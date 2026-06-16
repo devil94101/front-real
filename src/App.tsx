@@ -6,6 +6,7 @@ import { loadUser } from "./store/slices/authSlice";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PropertyForm } from "./components/PropertyForm";
+import { UpgradeModal } from "./components/UpgradeModal";
 import { useHashRoute } from "./lib/router";
 import { LoginPage } from "./pages/Login";
 import { RegisterPage } from "./pages/Register";
@@ -20,11 +21,14 @@ import type { Property } from "./types";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
-  const { token, isDemoMode, isAuthenticated } = useAppSelector((s) => s.auth);
+  const { token, isDemoMode } = useAppSelector((s) => s.auth);
 
-  // On mount: validate existing token, or auto-auth for demo mode
+  // On mount: validate any existing token. loadInitial() optimistically sets
+  // isAuthenticated=true when a token is present, so we must NOT gate on
+  // !isAuthenticated here — otherwise the validation never fires and the app
+  // stays stuck on "Verifying session…" after a refresh.
   useEffect(() => {
-    if (token && !isDemoMode && !isAuthenticated) {
+    if (token && !isDemoMode) {
       dispatch(loadUser());
     }
   }, []); // intentionally run once on mount
@@ -53,8 +57,18 @@ function Shell() {
   const route = useHashRoute();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const billing = useAppSelector((s) => s.billing.status);
 
-  const openAdd = () => { setEditing(null); setFormOpen(true); };
+  // Adding a new property is gated by the plan's listing limit; editing is not.
+  const openAdd = () => {
+    if (billing && !billing.canList) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setEditing(null);
+    setFormOpen(true);
+  };
   const openEdit = (p: Property) => { setEditing(p); setFormOpen(true); };
 
   // Public routes (no auth required)
@@ -79,8 +93,9 @@ function Shell() {
   return (
     <ProtectedRoute>
       <DataLoader>
-        <Layout onAddProperty={openAdd}>{page}</Layout>
+        <Layout onAddProperty={openAdd} onUpgrade={() => setUpgradeOpen(true)}>{page}</Layout>
         <PropertyForm open={formOpen} onClose={() => setFormOpen(false)} property={editing} />
+        <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       </DataLoader>
     </ProtectedRoute>
   );
