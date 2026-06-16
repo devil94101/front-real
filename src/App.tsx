@@ -1,0 +1,97 @@
+import { useEffect, useState } from "react";
+import { Provider } from "react-redux";
+import { store } from "./store";
+import { useApp, useAppDispatch, useAppSelector } from "./store/hooks";
+import { loadUser } from "./store/slices/authSlice";
+import { Layout } from "./components/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { PropertyForm } from "./components/PropertyForm";
+import { useHashRoute } from "./lib/router";
+import { LoginPage } from "./pages/Login";
+import { RegisterPage } from "./pages/Register";
+import { Dashboard } from "./pages/Dashboard";
+import { Properties } from "./pages/Properties";
+import { PropertyDetail } from "./pages/PropertyDetail";
+import { Vacancies } from "./pages/Vacancies";
+import { Deals } from "./pages/Deals";
+import { Contacts } from "./pages/Contacts";
+import { Team } from "./pages/Team";
+import type { Property } from "./types";
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const dispatch = useAppDispatch();
+  const { token, isDemoMode, isAuthenticated } = useAppSelector((s) => s.auth);
+
+  // On mount: validate existing token, or auto-auth for demo mode
+  useEffect(() => {
+    if (token && !isDemoMode && !isAuthenticated) {
+      dispatch(loadUser());
+    }
+  }, []); // intentionally run once on mount
+
+  return <>{children}</>;
+}
+
+function DataLoader({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loadAllData } = useApp();
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !loaded) {
+      loadAllData();
+      setLoaded(true);
+    }
+    if (!isAuthenticated) {
+      setLoaded(false);
+    }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <>{children}</>;
+}
+
+function Shell() {
+  const route = useHashRoute();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Property | null>(null);
+
+  const openAdd = () => { setEditing(null); setFormOpen(true); };
+  const openEdit = (p: Property) => { setEditing(p); setFormOpen(true); };
+
+  // Public routes (no auth required)
+  if (route.view === "login") return <LoginPage />;
+  if (route.view === "register") return <RegisterPage />;
+
+  // Protected routes
+  let page: React.ReactNode;
+  switch (route.view) {
+    case "properties":
+      page = route.param
+        ? <PropertyDetail propertyId={route.param} onEdit={openEdit} />
+        : <Properties onAddProperty={openAdd} />;
+      break;
+    case "vacancies": page = <Vacancies />; break;
+    case "deals": page = <Deals />; break;
+    case "contacts": page = <Contacts />; break;
+    case "team": page = <Team />; break;
+    default: page = <Dashboard onAddProperty={openAdd} />;
+  }
+
+  return (
+    <ProtectedRoute>
+      <DataLoader>
+        <Layout onAddProperty={openAdd}>{page}</Layout>
+        <PropertyForm open={formOpen} onClose={() => setFormOpen(false)} property={editing} />
+      </DataLoader>
+    </ProtectedRoute>
+  );
+}
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <AuthGate>
+        <Shell />
+      </AuthGate>
+    </Provider>
+  );
+}
